@@ -1,0 +1,839 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+        logicalFilePath="aa-changelog-v0.5.xml">
+
+    <changeSet id="0" author="mvillalobos">
+        <tagDatabase tag="v0"/>
+    </changeSet>
+
+    <changeSet id="1" author="mvillalobos">
+        <comment>Create DB schema for audit tables</comment>
+        <sql stripComments="true">
+            -- Create schema for audit tables
+            CREATE SCHEMA audit;
+        </sql>
+        <rollback>
+            -- Rollback SQL for changeset #1
+            DROP SCHEMA IF EXISTS audit;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="2" author="mvillalobos">
+        <comment>Add triggers for updating audit fields and creating the audit records</comment>
+        <sql stripComments="true">
+            -- Create trigger that does two things: 1) it updates the version and updated_at fields in the case of an
+            -- UPDATE. 2) on every INSERT, UPDATE, and DELETE operation it adds a record to the _H audit table.
+            CREATE OR REPLACE FUNCTION audit_update_trigger() RETURNS TRIGGER LANGUAGE plpgsql AS
+            'BEGIN
+                IF (TG_OP = ''INSERT'') AND (NEW.last_updated_by > 0) THEN
+                    EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING NEW;
+                    RETURN NEW;
+                ELSEIF (TG_OP = ''UPDATE'') AND (NEW.last_updated_by > 0) THEN
+                    NEW.version := OLD.version + 1;
+                    NEW.updated_at := CURRENT_TIMESTAMP;
+                    EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING NEW;
+                    RETURN NEW;
+                ELSEIF (TG_OP = ''DELETE'') THEN
+                    EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING OLD;
+                    RETURN OLD;
+                END IF;
+
+                RETURN NEW;
+            END;';
+
+            COMMENT ON FUNCTION audit_update_trigger() IS 'Trigger that does two things: 1) it updates the version and updated_at fields of a record in the case of an UPDATE 2) on every INSERT, UPDATE, and DELETE operation it adds a record to the _H audit table.'
+        </sql>
+
+        <rollback>
+            DROP FUNCTION IF EXISTS audit_update_trigger();
+        </rollback>
+    </changeSet>
+
+    <changeSet id="3" author="mvillalobos">
+        <comment>Adds cast necessary to support sensor time series sinks within Flink.</comment>
+        <sql dbms="postgresql" stripComments="true" splitStatements="true">
+
+            -- The following DO statement is only added so the Liquibase statements below with 'master1' work when run on a local DB
+            -- We don't actually need the ALTER TYPE statement when running locally, but in order for it pass when run locally we need the user to exist
+            DO
+            'BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = ''master1'')
+                    THEN CREATE ROLE master1 LOGIN PASSWORD ''master1'';
+                END IF;
+            END';
+
+            -- Because of restrictions with AWS RDS, it is required for a user to own a type in order to create an implicit cast on it
+            -- So because of this we must first 'ALTER TYPE' statements to change the type owner to the user which we use to run our Liquibase in AWS (that user is 'master1')
+            ALTER TYPE JSONB OWNER TO "master1";
+            ALTER TYPE NUMERIC OWNER TO "master1";
+            CREATE CAST(VARCHAR AS JSONB) WITH INOUT AS IMPLICIT;
+            CREATE CAST(VARCHAR AS NUMERIC) WITH INOUT AS IMPLICIT;
+        </sql>
+        <rollback>
+            DROP CAST IF EXISTS (VARCHAR AS NUMERIC);
+            DROP CAST IF EXISTS (VARCHAR AS JSONB);
+        </rollback>
+    </changeSet>
+
+    <changeSet id="4" author="mvillalobos">
+        <comment>Initial implementation of the concept hierarchy schema</comment>
+
+        <createTable tableName="organizations" remarks="Represents a company. This is the highest-level entity in the system. An domain componet may have one or more organizational units.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Domain component primary key">
+                <constraints primaryKey="true" primaryKeyName="organization_pk"/>
+            </column>
+
+            <column name="name" type="varchar(50)" remarks="The name of the organization. This should be the name of the company.">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="code" type="varchar(10)" remarks="A unique identification code for the organization.">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the company."/>
+            <column name="domain" type="varchar(100)" remarks="The domain of this domain component."/>
+            <column name="identity_provider" type="varchar(100)" remarks="The identity provider for this company."/>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable schemaName="audit" tableName="organizations_h" remarks="Audit table for organizations.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true" primaryKeyName="organizations_h_pk"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)" remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP" remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="organization_id" type="bigint" remarks="The primary key for organizations table.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)" remarks="The name of the organization. This should be the name of the company.">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="code" type="varchar(10)" remarks="A unique identification code for the organization.">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the company."/>
+            <column name="domain" type="varchar(100)" remarks="The domain of this domain component."/>
+            <column name="identity_provider" type="varchar(100)" remarks="The identity provider for this company."/>
+
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="organizational_units" remarks="Represents a organizational unit. An organization can have multiple organizational units.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Organizational unit primary key">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="organization_id" type="bigint" remarks="The organization that an organizational unit belongs to">
+                <constraints nullable="false" references="organizations(id)" foreignKeyName="ou_o_fk"/>
+            </column>
+            <column name="external_id" type="varchar(50)" remarks="Customer-provided ID for the refinery"/>
+            <column name="name" type="varchar(50)" remarks="Refinery name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="varchar(10)" remarks="A unique identification code for the organizational unit">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the organizational unit"/>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="organizational_units" indexName="organizational_units_organization_id_x">
+            <column name="organization_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="organizational_units"
+                             columnNames="organization_id, code"
+                             constraintName="organizational_units_organization_id_code_uk"
+                             deferrable="false"
+                             initiallyDeferred="false"/>
+
+        <addUniqueConstraint tableName="organizational_units"
+                             columnNames="organization_id, name"
+                             constraintName="organizational_units_organization_id_name_uk"
+                             deferrable="false"
+                             initiallyDeferred="false"/>
+
+        <createTable schemaName="audit" tableName="organizational_units_h" remarks="Audit table for ORGANIZATIONAL_UNITS">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true" primaryKeyName="organizational_units_h_pk"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)" remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP" remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="organizational_unit_id" type="bigint" remarks="The primary key for the organizational_units table.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="organization_id" type="bigint" remarks="The organization that an organizational unit belongs to">
+                <constraints nullable="false"/>
+            </column>
+            <column name="external_id" type="varchar(50)" remarks="Customer-provided ID for the refinery"/>
+            <column name="name" type="varchar(50)" remarks="Refinery name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="varchar(10)" remarks="A unique identification code for the organizational unit">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the organizational unit"/>
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+    </changeSet>
+
+
+    <changeSet id="5" author="mvillalobos">
+        <comment>Add triggers for updating audit fields and creating the audit records</comment>
+
+        <sql stripComments="true">
+            -- Update trigger for ORGANIZATIONS table
+            CREATE TRIGGER organizations_update_trg
+            BEFORE INSERT OR UPDATE OR DELETE ON organizations
+            FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+        <sql stripComments="true">
+            -- Update trigger for ORGANIZATIONAL_UNITS table
+            CREATE TRIGGER organizational_units_update_trg
+            BEFORE INSERT OR UPDATE OR DELETE ON organizational_units
+            FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+
+        <rollback>
+            -- Rollback SQL for changeset #3
+            DROP TRIGGER IF EXISTS organizations_update_trg ON organizations;
+            DROP TRIGGER IF EXISTS organizational_units_update_trg ON organizational_units;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="6" author="mvillalobos">
+        <comment>User Authorization Tables</comment>
+
+        <createTable tableName="users" remarks="Contains all users in the application">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Users primary key">
+                <constraints primaryKey="true" primaryKeyName="users_pk"/>
+            </column>
+
+            <column name="organizational_unit_id" type="bigint" remarks="The user's organizational unit">
+                <constraints nullable="false" references="organizational_units(id)" foreignKeyName="users_organizational_units_fk"/>
+            </column>
+            <column name="email_address" type="varchar(254)" remarks="User email address (used as login id)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="first_name" type="varchar(50)" remarks="First name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="varchar(50)" remarks="Last name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idp_id" type="varchar(377)"
+                    remarks="external uuid registered by an identity provider on SSO"/>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1"
+                    remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="users" indexName="users_organizational_unit_id_x">
+            <column name="organizational_unit_id"/>
+        </createIndex>
+
+        <createTable schemaName="audit" tableName="users_h" remarks="Audit table for USERS">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)"
+                    remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="user_id" type="bigint" remarks="The primary key for the users row">
+                <constraints nullable="false"/>
+            </column>
+            <column name="organizational_unit_id" type="bigint" remarks="The user's organizational unit">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email_address" type="varchar(254)" remarks="User email address (used as login id)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="varchar(50)" remarks="First name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="varchar(50)" remarks="Last name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idp_id" type="varchar(377)"
+                    remarks="external uuid registered by an identity provider on SSO"/>
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="roles"
+                     remarks="Roles are configured by customers and define a group of permissions that a user with the role receives. Users are assigned one or more roles.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Roles primary key">
+                <constraints primaryKey="true" primaryKeyName="roles_pk"/>
+            </column>
+
+            <column name="organizational_unit_id" type="bigint" remarks="The organizational unit that this role has been defined for">
+                <constraints nullable="false" references="organizational_units(id)" foreignKeyName="roles_organizational_units_fk"/>
+            </column>
+            <column name="name" type="varchar(50)" remarks="Role Name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="has_components" type="boolean"
+                    remarks="Indicates whether this role is composed of other roles.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the role"/>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1"
+                    remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="roles" indexName="roles_organizational_unit_id_x">
+            <column name="organizational_unit_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="roles"
+                             columnNames="organizational_unit_id, name"
+                             constraintName="roles_organizational_unit_id_name_uk"
+                             deferrable="false"
+                             initiallyDeferred="false"/>
+
+        <createTable schemaName="audit" tableName="roles_h" remarks="Audit table for ROLES">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)"
+                    remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="role_id" type="bigint" remarks="The primary key for the roles row">
+                <constraints nullable="false"/>
+            </column>
+            <column name="organizational_unit_id" type="bigint" remarks="The organizational unit that this role has been defined for">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)" remarks="Role Name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="has_components" type="boolean"
+                    remarks="Indicates whether this role is composed of other roles.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the role"/>
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="roles"
+                columnNames="name, organizational_unit_id"
+                constraintName="roles_name_organizational_unit_id_uk"
+                deferrable="false"
+                initiallyDeferred="false"/>
+
+        <createTable tableName="assigned_roles"
+                     remarks="Defines what roles each user has (many-to-many relationship between users and roles)">
+            <column name="id" type="bigint" autoIncrement="true" remarks="User roles primary key">
+                <constraints primaryKey="true" primaryKeyName="assigned_roles_pk"/>
+            </column>
+
+            <column name="user_id" type="bigint" remarks="User ID (foreign key to users)">
+                <constraints nullable="false" references="users(id)" foreignKeyName="assigned_roles_users_fk"
+                             deleteCascade="true"/>
+            </column>
+            <column name="role_id" type="bigint" remarks="Role ID (foreign key to roles)">
+                <constraints nullable="false" references="roles(id)" foreignKeyName="assigned_roles_roles_fk"/>
+            </column>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1"
+                    remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="assigned_roles" indexName="assigned_roles_user_id_x">
+            <column name="user_id"/>
+        </createIndex>
+
+        <createIndex tableName="assigned_roles" indexName="assigned_roles_role_id_x">
+            <column name="role_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="assigned_roles"
+                             columnNames="user_id, role_id"
+                             constraintName="assigned_roles_user_id_role_id_uk"
+                             deferrable="false"
+                             initiallyDeferred="false"/>
+
+        <createTable schemaName="audit" tableName="assigned_roles_h" remarks="Audit table for ASSIGNED_ROLES">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)"
+                    remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"
+                    remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="assigned_roles_id" type="bigint" remarks="The primary key for this table.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint" remarks="User ID (foreign key to users)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_id" type="bigint" remarks="Role ID (foreign key to roles)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="permissions" remarks="A permission defines a single 'thing' that a user can do in the application, such as 'Modify Assets'. Each role defines the set of permissions that a user with a role recieves.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Permissions primary key">
+                <constraints primaryKey="true" primaryKeyName="permissions_pk"/>
+            </column>
+
+            <column name="name" type="varchar(50)" remarks="Permission Name">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the permission"/>
+            <column name="is_generic" type="boolean" remarks="Is this a permission all users have access to?">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_internal" type="boolean" remarks="Is this a permission only for use by Beyond Limits employees?">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_dark" type="boolean" remarks="Is this a dark permission and not yet available in production environments?">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable schemaName="audit" tableName="permissions_h" remarks="Audit table for PERMISSIONS">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)" remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="permissions_id" type="bigint" remarks="The primary key for the permissions row">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)" remarks="Permission Name">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)" remarks="Additional description about the permission"/>
+            <column name="is_generic" type="boolean" remarks="Is this a permission all users have?">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_internal" type="boolean" remarks="Is this a permission only for use by Beyond Limits employees?">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_dark" type="boolean" remarks="Does this provide permission for a dark feature (not yet available to customers in the production environment)?">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="role_permissions" remarks="Defines what permissions each role has (many-to-many relationship between roles and permissions).">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Role permissions primary key">
+                <constraints primaryKey="true" primaryKeyName="role_permissions_pk"/>
+            </column>
+
+            <column name="role_id" type="bigint" remarks="Role ID (foreign key to roles)">
+                <constraints nullable="false" references="roles(id)" foreignKeyName="role_permissions_roles_fk"/>
+            </column>
+            <column name="permission_id" type="bigint" remarks="Permission ID (foreign key to permissions)">
+                <constraints nullable="false" references="permissions(id)" foreignKeyName="role_permissions_permissions_fk"/>
+            </column>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="role_permissions" indexName="role_permissions_role_id_x">
+            <column name="role_id"/>
+        </createIndex>
+
+        <createIndex tableName="role_permissions" indexName="role_permissions_permission_id_x">
+            <column name="permission_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="role_permissions"
+                             columnNames="role_id, permission_id"
+                             constraintName="role_permissions_role_id_permission_id_uk"
+                             deferrable="false"
+                             initiallyDeferred="false"/>
+
+        <createTable schemaName="audit" tableName="role_permissions_h" remarks="Audit table for ROLE_PERMISSIONS">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)" remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="role_permissions_id" type="bigint" remarks="The primary key for the role_permissions row">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_id" type="bigint" remarks="Role ID (foreign key to roles)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="permission_id" type="bigint" remarks="Permission ID (foreign key to permissions)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="7" author="mvillalobos">
+        <comment>Add triggers for new User Authorization tables</comment>
+
+        <sql stripComments="true">
+            -- Update trigger for USERS table
+            CREATE TRIGGER users_update_trg
+                BEFORE INSERT OR UPDATE OR DELETE ON users
+                FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+        <sql stripComments="true">
+            -- Update trigger for ROLES table
+            CREATE TRIGGER roles_update_trg
+                BEFORE INSERT OR UPDATE OR DELETE ON roles
+                FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+        <sql stripComments="true">
+            -- Update trigger for ASSIGNED_ROLES table
+            CREATE TRIGGER assigned_roles_update_trg
+                BEFORE INSERT OR UPDATE OR DELETE ON assigned_roles
+                FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+        <sql stripComments="true">
+            -- Update trigger for PERMISSIONS table
+            CREATE TRIGGER permissions_update_trg
+                BEFORE INSERT OR UPDATE OR DELETE ON permissions
+                FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+        <sql stripComments="true">
+            -- Update trigger for ROLE_PERMISSIONS table
+            CREATE TRIGGER role_permissions_update_trg
+                BEFORE INSERT OR UPDATE OR DELETE ON role_permissions
+                FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+
+        <rollback>
+            -- Rollback SQL for changeset
+            DROP TRIGGER IF EXISTS role_permissions_update_trg ON role_permissions;
+            DROP TRIGGER IF EXISTS permissions_update_trg ON permissions;
+            DROP TRIGGER IF EXISTS assigned_roles_update_trg ON assigned_roles;
+            DROP TRIGGER IF EXISTS roles_update_trg ON roles;
+            DROP TRIGGER IF EXISTS users_update_trg ON users;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="8" author="mvillalobos">
+        <comment>Enhance schema to support composite roles</comment>
+
+        <createTable tableName="role_components" remarks="For roles with components, this table defines what the component roles make up the composite role.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Role Components primary key">
+                <constraints primaryKey="true" primaryKeyName="role_components_pk"/>
+            </column>
+            <column name="role_id" type="bigint" remarks="Foreign key to the composite role (role with has_components = T).">
+                <constraints nullable="false" references="roles(id)" foreignKeyName="role_components_roles1_fk"/>
+            </column>
+            <column name="component_role_id" type="bigint" remarks="Role that is a component of the composite role.">
+                <constraints nullable="false" references="roles(id)" foreignKeyName="role_components_roles2_fk"/>
+            </column>
+
+            <!--Below fields added to every table-->
+            <column name="last_updated_by" type="bigint" defaultValueNumeric="1" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" defaultValueNumeric="1" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="role_components" indexName="role_components_role_id_x">
+            <column name="role_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="role_components" columnNames="role_id, component_role_id" constraintName="role_components_role_id_component_role_id_uk" deferrable="false" initiallyDeferred="false"/>
+
+        <createTable schemaName="audit" tableName="role_components_h" remarks="Audit table for role_components">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <!--Audit table fields-->
+            <column name="log_op" type="varchar(50)" remarks="The type of operation on the row (inserted, updated, deleted).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="log_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" remarks="The timestamp for the operation.">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--Fields representing data in table being audited-->
+            <column name="role_component_id" type="bigint" remarks="The primary key for the role_components row">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_id" type="bigint" remarks="Foreign key to the composite role (role with has_components = T).">
+                <constraints nullable="false"/>
+            </column>
+            <column name="component_role_id" type="bigint" remarks="Role that is a component of the composite role.">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="int" remarks="The version count for this record">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" remarks="When record was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" remarks="When record was last updated">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="9" author="mvillalobos">
+        <comment>Add trigger for new Role Components table</comment>
+
+        <sql stripComments="true">
+            -- Update trigger for ROLE_COMPONENTS table
+            CREATE TRIGGER role_components_update_trg
+                BEFORE INSERT OR UPDATE OR DELETE ON role_components
+                FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
+        </sql>
+
+        <rollback>
+            -- Rollback SQL for changeset
+            DROP TRIGGER IF EXISTS role_components_update_trg ON role_components;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

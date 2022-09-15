@@ -1,0 +1,47 @@
+# copy description from https://docs.spring.io/spring-boot/docs/2.7.3/reference/htmlsingle/#appendix.application-properties
+# document env variable override for other users and devops
+# try to use a flat structure so that it is easy to understand
+# always document each configuration value, no exceptions.
+
+# Application name.
+spring.application.name: component
+
+# The name of the application as displayed in the info actuator endpoint.
+info.app.name: ${spring.application.name}
+
+# A description of this application for the info actuator endpoint.
+info.app.description: Spring Boot microservice reference architecture
+
+# Controls how much git information to display in the actuator/info endpoint. Values are: simple or full
+management.info.git.mode: simple
+
+# Endpoint IDs that should be included or '*' for all.
+management.endpoints.web.exposure.include: "*"
+
+# When to show full health details.
+management.endpoint.health.show-details: always
+
+#spring.jpa.hibernate.ddl-auto: create
+
+# JDBC URL of the database.
+# override with env variable SPRING_DATASOURCE_URL
+spring.datasource.url: jdbc:tc:postgresql:12.5://localhost:5432/postgres
+
+# Login username of the database.
+# override with env variable SPRING_DATASOURCE_USERNAME
+spring.datasource.username: component
+
+# Login password of the database.
+# override with env variable SPRING_DATASOURCE_PASSWORD
+spring.datasource.password: component
+
+# Change log configuration path.
+# override with env variable SPRING_LIQUIBASE_CHANGELOG
+spring.liquibase.change-log: db/changelog/db.changelog-master.xml
+
+# Whether to enable Liquibase support.
+# override with env variable SPRING_LIQUIBASE_ENABLED
+spring.liquibase.enabled: true
+
+# Base path to be used by Spring Data REST to expose repository resources.
+spring.data.rest.base-path: /data/rest/

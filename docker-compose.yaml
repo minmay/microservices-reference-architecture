@@ -1,0 +1,54 @@
+version: "3.9"
+services:
+
+  postgresql.db.component.product.company.suffix:
+    image: postgres:12.3
+    container_name: postgresql.db.component.product.company.suffix
+    ports:
+      - "5432:5432"
+    env_file:
+      - src/main/docker-compose/envs/db.env
+    volumes:
+      - db.component.product.company.suffix:/var/lib/postgresql/data
+
+  liquibase.component.product.company.suffix:
+    image: liquibase/liquibase
+    container_name: liquibase.component.product.company.suffix
+    command: --url=jdbc:postgresql://postgresql.db.component.product.company.suffix:5432/component?user=component&password=component --changeLogFile=db.changelog-master.xml update
+    volumes:
+      - ./src/main/resources/db/changelog:/liquibase/changelog
+    depends_on:
+      - postgresql.db.component.product.company.suffix
+
+  schemaspy.component.product.company.suffix:
+    image: schemaspy/schemaspy
+    volumes:
+      - ./src/main/docker-compose/schemaspy/schemaspy.properties:/schemaspy.properties
+      - schemaspy.component.product.company.suffix:/output:rw
+    depends_on:
+      - liquibase.component.product.company.suffix
+
+  www.schemaspy.component.product.company.suffix:
+    image: nginx
+    volumes:
+      - schemaspy.component.product.company.suffix:/output:ro
+      - ./src/main/docker-compose/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8090:80"
+    depends_on:
+      - schemaspy.component.product.company.suffix
+
+  component.product.company.suffix:
+    build:
+      context: .
+    image: company.suffix/product/component:latest
+    hostname: component.product.company.suffix
+    env_file:
+      - src/main/docker-compose/envs/component.env
+    ports:
+      - "8080:8080"
+
+volumes:
+  db.component.product.company.suffix: {}
+  schemaspy.component.product.company.suffix: {}
+
