@@ -33,15 +33,50 @@ fixing Dockerfile
 Then commit your changes.
 
 ```bash
+docker-compose up
+```
+
+Don't like your results?
+
+```bash
+docker-compose down -v
+git reset --hard
+```
+
+Then repeat until you like the results.
+
+```bash
 git add -A
 git commit -m "Configured reference architecture."
 ```
 
+
+## Local Execution
+
+```bash
+docker-compose up
+docker-compose stop component.product.company.suffix
+```
+
+Copy this into your IDE environment variables
+`SPRING_DATASOURCE_URL=jdbc:postgresql://postgresql.db.component.product.company.suffix:5432/component;SPRING_LIQUIBASE_ENABLED=false;`
+
 # Features
 
 This project unapologetically provides a standard microservices reference architecture.
-It is built on yet another opinionated framework, Spring Boot. However, also promotes
+It is built on yet another opinionated framework, Spring Boot. 
+
+The main difference between this and plain ordinary Spring Boot is that this promotes
 architectural patterns that simply work.
+
+1. Pre-defined Java Package structure recommendation that follows the Layered-Architecture Pattern.
+2. Gradle build with Maven style Dependency Management built-in.
+3. A Docker build.
+4. A starter database schema with auditing built-in.
+5. Liquibase Migrations.
+6. An agile Schema Diagram creator.
+7. Scaffolding to run this system in Docker Compose.
+8. Swagger enabled, but can be disabled with environemnt variable.
 
 All package names are documented, and explained in the architecture of this document.
 
@@ -64,8 +99,12 @@ and publish your schema into an NGINX server so that your team can have discussi
 
 Just type `docker-compose up`
 
+## URLs
+
 [View Schema](http://localhost:8090)
+
 [View Actuator](http://localhost:8080)
+[Swagger UI](http://localhost:8080/swagger-ui/index.html)
 
 ## Database Conventions Bootstrap
 
@@ -74,6 +113,8 @@ Just type `docker-compose up`
 3. Schema supports multi-tenancy.
 4. Schema is managed by Liquibase.
 5. Shema published by Schema Spy.
+
+![Reference Schema](src/main/docs/images/relationships.real.large.png)
 
 ## Kibana Logging
 To enable Kibana logging just activate the Kibana profile through the SPRING_PROFILES_ACTIVE environment variable.
