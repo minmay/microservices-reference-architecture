@@ -45,3 +45,7 @@ spring.liquibase.enabled: true
 
 # Base path to be used by Spring Data REST to expose repository resources.
 spring.data.rest.base-path: /data/rest/
+
+# Flag that indicates if springfox should scan services to produce specifications.
+# Turn this to false in production to disable swagger.
+springfox.documentation.enabled: true

@@ -24,6 +24,7 @@ ext {
 	javaFakerVersion = '1.0.2'
 	logbackEncoderVersion = '6.6'
 	testcontainersVersion = '1.17.3'
+	swaggerVersion = '3.0.0'
 	snippetsDir= 'build/generated-snippets'
 }
 
@@ -35,6 +36,7 @@ dependencyManagement {
 	dependencies {
 		dependency "com.github.javafaker:javafaker:${javaFakerVersion}"
 		dependency "net.logstash.logback:logstash-logback-encoder:${logbackEncoderVersion}"
+		dependency "io.springfox:springfox-boot-starter:${swaggerVersion}"
 	}
 }
 
@@ -43,6 +45,7 @@ dependencies {
 		exclude group: 'org.yaml', module: 'snakeyaml'
 	}
 	implementation 'net.logstash.logback:logstash-logback-encoder'
+	implementation 'io.springfox:springfox-boot-starter'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
