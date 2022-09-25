@@ -1,4 +1,4 @@
-package suffix.company.product.component.api.entities;
+package suffix.company.product.component.api.repositories.entities;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,7 +10,6 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
-import java.time.Instant;
 
 /**
  * Parent class for all entities.

@@ -76,7 +76,7 @@ architectural patterns that simply work.
 5. Liquibase Migrations.
 6. An agile Schema Diagram creator.
 7. Scaffolding to run this system in Docker Compose.
-8. Swagger enabled, but can be disabled with environemnt variable.
+8. Swagger enabled, but can be disabled with environment variable.
 
 All package names are documented, and explained in the architecture of this document.
 
@@ -114,8 +114,6 @@ Just type `docker-compose up`
 4. Schema is managed by Liquibase.
 5. Shema published by Schema Spy.
 
-![Reference Schema](src/main/docs/images/relationships.real.large.png)
-
 ## Kibana Logging
 To enable Kibana logging just activate the Kibana profile through the SPRING_PROFILES_ACTIVE environment variable.
 ```
@@ -123,19 +121,48 @@ SPRING_PROFILES_ACTIVE=kibana
 ```
 
 # Architecture
-This project is derived from a reference architecture for microservies.
+This project functions as a reference architecture for microservices.
 
-A very important principles in Micro-Services architecture are loose coupling and high cohesion.
+## Design Concepts
 
+### Reference Architectures
+
+A survey of reference architectures used in this design iteration.
+
+None.
+
+### Architecture Patterns
+
+A survey of known architecture patterns used in this design iteration.
+
+### Microservices Architecture Pattern
+
+A microservices architecture consists of a collection of small, autonomous services. Each service is self-contained and
+should implement a single business capability within a bounded context. A bounded context is a natural division within 
+a business and provides an explicit boundary within which a domain model exists.
+
+A very important principle in Microservices architecture are loose coupling and high cohesion.
 It is called “micro” because it meant to be cohesive with respect to a limited set of functionality.
 
-It is loosely coupled in the sense that a micro-service typically is the owner of an unshared database. 
-This allows the micro service to own changes on a database without impacting other applications, 
+It is loosely coupled in the sense that a micro-service typically is the owner of an unshared database.
+This allows the micro service to own changes on a database without impacting other applications,
 and it also allows for a service to scale independently on as needed basis.
+
+* Microservices are small, independent, and loosely coupled. A single small team of developers can write and maintain 
+a service.
+* Each service is a separate codebase, which can be managed by a small development team.
+* Services can be deployed independently. A team can update an existing service without rebuilding and redeploying 
+the entire application.
+* Services are responsible for persisting their own data or external state. This differs from the traditional model, 
+where a separate data layer handles data persistence.
+* Services communicate with each other by using well-defined APIs. Internal implementation details of each service 
+are hidden from other services.
+* Supports polyglot programming. For example, services don't need to share the same technology stack, libraries, 
+or frameworks.
 
 ![Microservices Architecture](src/main/docs/images/micro.png)
 
-## Layered Architecture
+### Layered Architecture Pattern
 
 The actual Micro-Service component is typically built using a layered architecture.
 
@@ -151,80 +178,84 @@ Its drawback is that there is a performance cost for each layer, and it can be v
 
 ![Layered Architecture Pattern](src/main/docs/images/layers.png)
 
+## Design Decisions
+| Id      | Design Decisions and Location                                                                                                                                                    | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| DD-1.1  | This component will use JDK 17.                                                                                                                                                  | JDK 17 has long term support. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>JDK 11</td><td>JDK 17 is already over a year old.</td></tr><tr><td>JDK 8</td><td>No long term support.</td></tr><tr><td>Other JDKs</td><td>No long term support.</td></tr><tr><td>Other languages</td><td>We would like to standardize on Java as much as possible.</td></tr></tbody></table>                                           |
+| DD-1.2  | This component will be built with Gradle groovy DLS.                                                                                                                             | Gradle builds more quickly than Maven <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>Maven</td><td>It builds more slowly than Maven.</td></tr></tbody></table>                                                                                                                                                                                                                                                       |
+| DD-1.3  | This component will use the latest stable version of Spring Boot.                                                                                                                | Spring Boot is a very popular framework for building Microservices. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>None</td><td>Spring Boot is very popular.</td></tr></tbody></table>                                                                                                                                                                                                                               |
+| DD-1.4  | This component will use Spring Web.                                                                                                                                              | Integrates more easily with Spring Boot and Spring Security. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>JAX-RS</td><td>JAX-RS indeed has a nicer API, but Spring Web is functionally similar, and integrates better with all the other Spring libraries.</td></tr></tbody></table>                                                                                                                               |
+| DD-1.5  | This component will use Checkstyle plugin.                                                                                                                                       | Enforcement of a consistent style promotes conceptual integrity. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>No checkstyle.</td><td>Lacks conceptual integrity.</td></tr></tbody></table>                                                                                                                                                                                                                         |
+| DD-1.6  | Checkstyle coding conventions will follow Sun Coding Conventions and most IntelliJ defaults. Curly braces required after if, do, while, else, or for statement. No star imports. | Enforcement of a consistent style promotes conceptual integrity. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>Inconsistent style</td><td>Lacks conceptual integrity.</td></tr></tbody></table>                                                                                                                                                                                                                     |
+| DD-1.7  | This component will use the Lombok plugin for domain objects, configuration objects, transfer objects, and entity objects.                                                       | Automatically creates getters, setters, constructors, hashcode, toString, thus this eliminates boiler-plate code, and promotes conceptual integrity. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>No Lombok</td><td>This creates a lot of boiler-plate code.</td></tr></tbody></table>                                                                                                                             |
+| DD-1.8  | This component will use the Liquibase plugin.                                                                                                                                    | Liquibase is an open-source database schema change management solution which enables you to manage revisions of your database changes easily. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>Flyway</td><td>Not as feature rich as Liquibase.</td></tr><tr><td>No schema management</td><td>This leads to chaos in managing a database.</td></tr></tbody></table>                                                    |
+| DD-1.9  | This component will use Schema Spy to automatically publish its database schema.                                                                                                 | Documentation will facilitate communication with the team. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>No database documentation</td><td>Less documentation.</td></tr></tbody></table>                                                                                                                                                                                                                            |
+| DD-1.10 | This component will have a predefined schema that supports multi-tenancy, security, and auditing.                                                                                | Provides a reasonable example for creating a schema.<table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>None</td><td>N/A</td></tr></tbody></table>                                                                                                                                                                                                                                                                        |
+| DD-1.11 | This database schema will follow a specified set of database conventions.                                                                                                        | These conventions will make it easier to support different frameworks such as JPA or Ruby on Rails. This promotes conceptual integrity. <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>None</td><td>N/A</td></tr></tbody></table>                                                                                                                                                                                    |
+| DD-1.12 | This component will follow a specified set of REST API conventions.                                                                                                              | These conventions make the API easier to understand. This promote conceptual integrity.<table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>No convention.</td><td>The API will become chaotic and unintuitive.</td></tr></tbody></table>                                                                                                                                                                                  |
+| DD-1.13 | The REST API will use swagger for documentation.                                                                                                                                 | Documentation will facilitate communication with the team.<table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>No API documentation</td><td>Less communication.</td></tr></tbody></table>                                                                                                                                                                                                                                  |
+| DD-1.14 | This component will follow a specified layered package structure.                                                                                                                | This will make the component easier to maintain and reason about. This will make the system easier to test. This promotes conceptual integrity.<table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>None</td><td>N/A</td></tr></tbody></table>                                                                                                                                                                             |
+| DD-1.15 | This component will use SLF4J Logback for local logging and a Kibana logger for production logging.                                                                              | SL4J Logback will make the component debug readable locally whereas Kibana will make it easier to debug in the cloud.<table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>SLF4J Logback</td><td>Although it is readable locally newlines are messed up in Kibana.</td></tr><tr><td>Kibana Format</td><td>Although it appears perfectly in Kibana, locally it shows up as difficult to read JSON.</td></tr></tbody></table> |
+| DD-1.x  |                                                                                                                                                                                  | <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>None</td><td>N/A</td></tr></tbody></table>                                                                                                                                                                                                                                                                                                                            |
+
+[Design Decisions Row]: <> (| DD-1.x |                                                                                                                                                                                  | <table><thead><tr><th>Alternative</th><th>Reason for Discarding</th></tr></thead><tbody><tr><td>None</td><td>N/A</td></tr></tbody></table>                                                                                                                                                                                                                                                                                  |)
+
+
 ## Layers within a Typical Spring Boot Micro-Services Application
 
-This influences how we should organize a project within a Spring Boot Micro-Services application.
+Layering within a Spring Boot Micro-Services application.
 
+| Element              | Responsibility                                                                                                                                                                                                                                                                                    |
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Presentation Tier    | A well-designed architecture could easily switch Presentation Layer implementations with different technologies. Perhaps this could be a Swing Application, Command Line Application, or MVC framework with server side templating. This particular example documents a Layered REST application. |
+| Serialization Segment | The Serialization segment provides a set of classes per each serializable request and response types (i.e. Plain Ordinary Java Object that Jackson could easily convert to and from JSON).                                                                                                        |
+| Transformer Segment  | The Transformer segment will convert serializable request and response classes into Domain / Model classes.                                                                                                                                                                                       |
+| REST Endpoint Declarations Segment | The REST Endpoint Declarations will each declare a PATH, an Accept type, a Content-Type, a serializable request class, and a serializable response class. <p/> It will receive the Serializable Request, transform it into the appropriate Domain / Model class, and call the appropriate Business Logic Service class, transform the result into Serializable Response, and finally respond. |
+| Business Logic Services Layer | The Business Logic Services Layer receives a domain object from the Presentation Layer, and provides business functionality. It will use the Client Interface to communicate to other components in a system or the Persistence Layer to persist data. |
+| Client Interface Layer or Persistence Layer | The Client Interface Layer is responsible for sending or receiving data from other systems.  This might also be a Persistence Layer that merely persist data into a data-store. For example, this could be a set of Data-access Objects that use JPA. |
+| Domain / Model Layer | The Domain / Model layer should attempt to provide an object-oriented model of your business. It is good to implement business logic here, but keep in mind that business logic computations often require external persistence, and it is anti-pattern to couple persistence technologies with a domain object. These absolutely should be Plain Ordinary Java objects, and depending on your threading model, perhaps immutable as well. | 
+ 
 ![Spring Boot Layers](src/main/docs/images/sb-layers.png)
-
-### The Presentation Tier
-
-A well-designed architecture could easily switch Presentation Layer implementations with different technologies. 
-Perhaps this could be a Swing Application, Command Line Application, or MVC framework with server side templating. 
-This particular example documents a Layered REST application.
-
-### Serialization Segment
-
-The Serialization segment provides a set of classes per each serializable request and response types 
-(i.e. Plain Ordinary Java Object that Jackson could easily convert to and from JSON).
-
-### Transformer Segment
-
-The Transformer segment will convert serializable request and response classes into Domain / Model classes.
-
-### REST Endpoint Declarations Segment
-
-The REST Endpoint Declarations will each declare a PATH, an Accept type, a Content-Type, a serializable 
-request class, and a serializable response class.
-
-It will receive the Serializable Request, transform it into the appropriate Domain / Model class, and call the 
-appropriate Business Logic Service class, transform the result into Serializable Response, and finally respond.
-
-### Business Logic Services Layer
-
-The Business Logic Services Layer receives a domain object from the Presentation Layer, and provides business 
-functionality. It will use the Client Interface to communicate to other components in a system or the 
-Persistence Layer to persist data.
-
-### Client Interface Layer or Persistence Layer
-
-The Client Interface Layer is responsible for sending or receiving data from other systems.  This might also be 
-a Persistence Layer that merely persist data into a data-store. For example, this could be a set of 
-Data-access Objects that use JPA.
-
-### Domain / Model Layer
-
-The Domain / Model layer should attempt to provide an object-oriented model of your business. It is good to 
-implement business logic here, but keep in mind that business logic computations often require external 
-persistence, and it is anti-pattern to couple persistence technologies with a domain object. These 
-absolutely should be Plain Ordinary Java objects, and depending on your threading model, perhaps immutable as well.
 
 ## Package Structure
 
-![Package Structures](src/main/docs/images/packages.png)
+| Element                | Responsibility |
+|------------------------|----------------|
+ | Packages defined below | N/A            | 
 
 ### suffix.company.product.component
 
 This is the base package. It will also contain the application class ComponentNameApp.
 
-### suffix.company.product.component.api.domain
-
-Contains concrete domain objects, model classes, or business objects.
-
-### suffix.company.product.component.api.services
-
-Contains interfaces for each service.
-
 ### suffix.company.product.component.api.repositories
 
 Contains interfaces for each Data-Access Object (aka Data Repositories).
 
-Since we might have eventually have two implementations, please prefix them with the type of Repository, for example JdbcTimeSeriesRepository and CassandraTimeSeriesRepository which both implement some Repository interface.
+Since we might have eventually have two implementations, please prefix them with the type of Repository, 
+for example JdbcTimeSeriesRepository and CassandraTimeSeriesRepository which both implement some Repository interface.
 
 These should provide CRUD operations, thus, we should use the following names:
 `createOne`, `createMany`, `updateOne`, `updateMany`, `removeById`
 
 Use find methods instead of get.  Make sure to use `By` and `And`. For example:  `findTimeSeriesById`, `findTimeSeriesByOrgAndPlanDateRange`
+
+Repositories should only reference entity objects. There absolutely should not be any transfer objects from the io 
+package or domain objects referenced within a repository.
+
+### suffix.company.product.component.api.repositories.entities
+
+This package contains JPA entity classes that are mapped to a relational database.
+
+### suffix.company.product.component.api.services
+
+Contains interfaces for each service. Parameters for domain service interfaces should only be domain objects.
+
+It is highly discouraged to use transfer objects in a service interface parameter because that highly couples
+portable business logic with external interface of this application.
+
+### suffix.company.product.component.api.services.domain
+
+Contains concrete domain objects, model classes, or business objects.
 
 ### suffix.company.product.component.implementation.controllers
 
@@ -267,18 +298,19 @@ This will contain any POJOs that are used in the HTTP Request / Response.  We us
 #### Controller IO Naming Conventions
 
 1. Use the suffix Request for requests, and Response for responses.
-2. Use the word Find, Create, Remove in an HTTP GET, DELETE respectively, but use the HTTP method name for other objects. 
+2. Use the word Find, Create, Remove in an HTTP GET, DELETE respectively, but use the HTTP method name for other objects.
 3. Use the word One for singular, and Many for plural.
+4. Add the suffix TO to each IO object so that it is easily recognizable as a transfer object.
 
 ##### Controller IO Naming Convention Examples
 
-| Method | Resource          | Request Object             | Response Object                                                                 |
-|--------|-------------------|----------------------------|---------------------------------------------------------------------------------|
-| GET    | /pluralNouns      | N/A                        | FindManyPluralNounsResponse                                                     |
-| GET    | /pluralNouns/{id} | N/A                        | FindOneSingularNounResponse                                                     |
-| PUT    | /pluralNouns/{id} | PutOneSingularNounRequest  | PutOneSingularNounResponse. This just return 200 and require a response object. |
-| POST   | /pluralNouns      | PostOneSingularNounRequest | PostOneSingularNounResponse                                                     |
-| DELETE | /pluralNouns/{id} | N/A                        | RemoveOneSingularNounResponse (realistically, this will have no response)       |
+| Method | Resource            | Request Object               | Response Object                                                                   |
+|--------|---------------------|------------------------------|-----------------------------------------------------------------------------------|
+| GET    | /pluralNouns        | N/A                          | FindManyPluralNounsResponseTO                                                     |
+| GET    | /pluralNouns/\{id\} | N/A                          | FindOneSingularNounResponseTO                                                     |
+| PUT    | /pluralNouns/\{id\} | PutOneSingularNounRequestTO  | PutOneSingularNounResponseTO. This just return 200 and require a response object. |
+| POST   | /pluralNouns        | PostOneSingularNounRequestTO | PostOneSingularNounResponseTO                                                     |
+| DELETE | /pluralNouns/\{id\} | N/A                          | RemoveOneSingularNounResponseTO (realistically, this will have no response)       |
 
 ### suffix.company.product.component.implementation.repositories
 This will contain concrete Data-Access objects used by the Services.
@@ -299,7 +331,7 @@ All persistence logic should be delegated to Dao class that belongs in the dal p
 
 <span style="color:red">Absolutely no IO classes or Rest resource classes should leak into this layer</span>.
 
-### suffix.company.product.component.implementation.configuration
+### suffix.company.product.component.implementation.configurations
 
 This package should contain Spring Boot External Configuration classes
 
@@ -337,12 +369,18 @@ public class AcmeConfiguration {
    }
 }
 ```
-## References
-1. Bass L, Clements P, Kazman R. Software Architecture in Practice. Addison-Wesley Professional; 2012.
+![Package Structures](src/main/docs/images/packages.png)
 
-# Database Guidelines
+## Database Conventions
 
-## Design Decisions
+| Element                     | Responsibility                                                                                                                                |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| Liquibase                   | Liquibase is an open-source database schema change management solution which enables you to manage revisions of your database changes easily. |
+| Audit Schema                | In addition to the public schema there will be an audit schema containing audit tables only.                                                  | 
+| Audit Columns               | Every business table will have the columns `last_updated_by`, `version`, `created`, `updated_at` in order to support auditing.                |
+| Audit Table                 | Every business table will have an audit table in the in the audit schema with the same name and `_h` suffix.                                  |
+| Audit Trigger               | Every business table will be assigned the audit trigger.                                                                                      |
+| Database Coding Conventions | A set of guidelines that recommend programming style, practices, and methods for each aspect of a development.                                | 
 
 We target local and cloud development. For this reason, we chose PostgreSQL, and we always have the database buildable within Docker locally.
 
@@ -356,11 +394,13 @@ Last, every table versioning, modify timestamps, and auditing.
 
 In summary,
 1. Manage schema with Liquibase.
-2. Everychange set can rollback (this often requires writing rollbacks).
+2. Every change set must support rollback (this often requires writing rollbacks).
 3. Always build Schema Spy.
 4. Every table has version number, timestamp, and auditing.
 
-## Auditing
+### Auditing
+
+#### Audit Columns
 All tables should have the following columns:
 1. last_updated_by INTEGER DEFAULT 1 NOT NULL
 2. version INTEGER DEFAULT 1 NOT NULL
@@ -387,6 +427,27 @@ Which could be defined with the following Liquibase change set elements.
 
 and assigned the audit_update_trigger.
 
+#### Audit Trigger
+
+```postgresql
+CREATE OR REPLACE FUNCTION audit_update_trigger() RETURNS TRIGGER LANGUAGE plpgsql AS
+'BEGIN
+    IF (TG_OP = ''UPDATE'') AND (NEW.last_updated_by > 0) THEN
+        NEW.version := OLD.version + 1;
+        NEW.updated_at := CURRENT_TIMESTAMP;
+        EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING OLD;
+        RETURN NEW;
+    ELSEIF (TG_OP = ''DELETE'') THEN
+        EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING OLD;
+        RETURN OLD;
+    END IF;
+
+    RETURN NEW;
+END;';
+
+COMMENT ON FUNCTION audit_update_trigger() IS 'Trigger that does two things: 1) it updates the version and updated_at fields of a record in the case of an UPDATE 2) on every INSERT, UPDATE, and DELETE operation it adds a record to the _H audit table.'
+```
+
 Let’s say that we introduced a table called widgets, then assign the audit_update_trigger like this:
 
 ```postgresql
@@ -396,7 +457,7 @@ FOR EACH ROW EXECUTE PROCEDURE audit_update_trigger();
 ```
 
 Additionally, each table has a table in the in the audit schema.
-
+#### Audit Table
 ```xml
 <createTable schemaName="audit" tableName="widgets_h" remarks="Audit table for WIDGETS">
     <column name="id" type="bigint" autoIncrement="true" remarks="Primary key for this audit table">
@@ -420,7 +481,7 @@ Additionally, each table has a table in the in the audit schema.
     .
 </createTable>
 ```
-## Coding Convetions
+### Database Coding Conventions
 
 1. TABLE names are plural.
 2. COLUMN names are singular
@@ -446,10 +507,28 @@ Additionally, each table has a table in the in the audit schema.
 
     Use the name `"id"` for the `PRIMARY KEY` column. It is the most popular convention, and it will allow your database to more easily integrate with other frameworks such as Ruby on Rails.
     Do <span style="color:red">NOT</span> use a `COMPOSITE PRIMARY KEY`, instead use a `UNIQUE INDEX`.
-10. Do <span style="color:red">NOT</span> use table names or column names that are SQL key words or key words in common programming languages, for example `order`.
+10. Do <span style="color:red">NOT</span> use table names or column names that are SQL keywords or keywords in common programming languages, for example `order`.
     This often requires quoting when writing SQL and that can be very inconvenient. It also makes
-    more challening to write reflective tooling code.
+    more challenging to write reflective tooling code.
 12. Always start a relational database design in 3rd-Normal-Form (3NF). It is almost always a mistake not to start a database design in this manner.
 13. If you need a timestamp column, when in doubt, use the `TIMESTAMPTZ` type.
 
     Also, please note that this maps to the `OffsetDateTime` type in Java.
+
+## Starter Database Schema
+
+| Element | Responsibility                                                                                                                                                                   |
+|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| organizations | Represents a company. This is the highest-level entity in the system. An domain componet may have one or more organizational units.                                              |
+| organizational_units | Represents a organizational unit. An organization can have multiple organizational units.                                                                                        |
+| users | Contains all users that use the application.                                                                                                                                     |
+| roles | Roles are configured by customers and define a group of permissions that a user with the role receives. Users are assigned one or more roles.                                    |
+| assigned_roles | Defines what roles each user has (many-to-many relationship between users and roles).                                                                                            |
+| permissions | A permission defines a single 'thing' that a user can do in the application, such as 'Modify Assets'. Each role defines the set of permissions that a user with a role recieves. |
+| role_permissions | Defines what permissions each role has (many-to-many relationship between roles and permissions).                                                                                |
+| role_components | For roles with components, this table defines what the component roles make up the composite role.                                                                               |
+
+![Reference Schema](src/main/docs/images/relationships.real.large.png)
+
+## References
+1. Bass L, Clements P, Kazman R. Software Architecture in Practice. Addison-Wesley Professional; 2012.

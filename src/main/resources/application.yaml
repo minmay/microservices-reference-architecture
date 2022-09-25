@@ -29,11 +29,11 @@ spring.datasource.url: jdbc:tc:postgresql:12.5://localhost:5432/postgres
 
 # Login username of the database.
 # override with env variable SPRING_DATASOURCE_USERNAME
-spring.datasource.username: component
+spring.datasource.username: product
 
 # Login password of the database.
 # override with env variable SPRING_DATASOURCE_PASSWORD
-spring.datasource.password: component
+spring.datasource.password: product
 
 # Change log configuration path.
 # override with env variable SPRING_LIQUIBASE_CHANGELOG
@@ -46,6 +46,23 @@ spring.liquibase.enabled: true
 # Base path to be used by Spring Data REST to expose repository resources.
 spring.data.rest.base-path: /data/rest/
 
-# Flag that indicates if springfox should scan services to produce specifications.
-# Turn this to false in production to disable swagger.
-springfox.documentation.enabled: true
+# Flag that enables the springdoc-openapi endpoint.
+# Turn this to false in production to disable swagger
+# override with env variable SPRINGDOC_APIDOCS_ENABLED
+springdoc.api-docs.enabled: true
+
+# Don't cache API documentation.  That way, when the application is restarted,
+# the API docs always reflect our latest annotation changes.  See
+# https://springdoc.org/faq.html#_how_can_i_disable_springdoc_openapi_cache
+# for more information.
+springdoc.cache.disabled: true
+
+# enable fully qualified names.
+springdoc.use-fqn: true
+
+#######################################################
+# Do NOT add logging directives to this file.         #
+#######################################################
+# Instead, run the application with the logging settings enabled:
+#
+# $ ./gradlew bootRun --args='--logging.level.suffix.company=DEBUG'

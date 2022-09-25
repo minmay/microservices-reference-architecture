@@ -30,4 +30,4 @@
  * }
  * }</pre>
  */
-package suffix.company.product.component.implementation.configuration;
+package suffix.company.product.component.implementation.configurations;

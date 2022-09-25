@@ -1,4 +1,4 @@
-package suffix.company.product.component.api.entities;
+package suffix.company.product.component.api.repositories.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
