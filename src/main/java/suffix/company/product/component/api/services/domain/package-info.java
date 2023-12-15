@@ -9,4 +9,4 @@
  * with a domain object. These absolutely should be Plain Ordinary Java objects, and
  * depending on your threading model, perhaps immutable as well.
  */
-package suffix.company.product.component.api.domain;
+package suffix.company.product.component.api.services.domain;

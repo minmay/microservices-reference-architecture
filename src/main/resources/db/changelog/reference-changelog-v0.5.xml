@@ -4,7 +4,7 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
-        logicalFilePath="aa-changelog-v0.5.xml">
+        logicalFilePath="reference-changelog-v0.5.xml">
 
     <changeSet id="0" author="mvillalobos">
         <tagDatabase tag="v0"/>
@@ -29,10 +29,7 @@
             -- UPDATE. 2) on every INSERT, UPDATE, and DELETE operation it adds a record to the _H audit table.
             CREATE OR REPLACE FUNCTION audit_update_trigger() RETURNS TRIGGER LANGUAGE plpgsql AS
             'BEGIN
-                IF (TG_OP = ''INSERT'') AND (NEW.last_updated_by > 0) THEN
-                    EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING NEW;
-                    RETURN NEW;
-                ELSEIF (TG_OP = ''UPDATE'') AND (NEW.last_updated_by > 0) THEN
+                IF (TG_OP = ''UPDATE'') AND (NEW.last_updated_by > 0) THEN
                     NEW.version := OLD.version + 1;
                     NEW.updated_at := CURRENT_TIMESTAMP;
                     EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING NEW;
@@ -80,9 +77,9 @@
     </changeSet>
 
     <changeSet id="4" author="mvillalobos">
-        <comment>Initial implementation of the concept hierarchy schema</comment>
+        <comment>Initial implementation of the organization hierarchy schema</comment>
 
-        <createTable tableName="organizations" remarks="Represents a company. This is the highest-level entity in the system. An domain componet may have one or more organizational units.">
+        <createTable tableName="organizations" remarks="Represents a company. This is the highest-level entity in the system. An domain component may have one or more organizational units.">
             <column name="id" type="bigint" autoIncrement="true" remarks="Domain component primary key">
                 <constraints primaryKey="true" primaryKeyName="organization_pk"/>
             </column>
@@ -272,7 +269,7 @@
     <changeSet id="6" author="mvillalobos">
         <comment>User Authorization Tables</comment>
 
-        <createTable tableName="users" remarks="Contains all users in the application">
+        <createTable tableName="users" remarks="Contains all users that use the application">
             <column name="id" type="bigint" autoIncrement="true" remarks="Users primary key">
                 <constraints primaryKey="true" primaryKeyName="users_pk"/>
             </column>

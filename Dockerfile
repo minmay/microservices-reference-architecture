@@ -1,27 +1,27 @@
 # docker build -t company.suffix/product/component:latest -t company.suffix/product/component:0.0.1-SNAPSHOT .
 # docker run -p 8080:8080 company.suffix/product/component:latest
 
-FROM gradle:6.9.1-jdk11 as build
+FROM gradle:7.5.1-jdk17 as build
 LABEL vendor="Company"
 LABEL app="component"
 
-ENV APP_DIR /opt/company/product/component/
+ENV APP_DIR /opt/company/product/component
 ENV GRADLE_OPTS -Dorg.gradle.daemon=false
-ENV JVM_OPTIONS "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 
-WORKDIR $APP_DIR
+WORKDIR $APP_DIR/
+ADD config $APP_DIR/config
 ADD build.gradle $APP_DIR/
 ADD settings.gradle $APP_DIR/
 RUN mkdir -p $APP_DIR/src/main
 ADD src/main $APP_DIR/src/main
 RUN gradle build
 
-FROM azul/zulu-openjdk:11 AS deployment
+FROM azul/zulu-openjdk:17 AS deployment
 
 EXPOSE 8080
 EXPOSE 5005
 ENV SERVER_PORT 8080
-ENV APP_DIR /opt/company/product/component/
+ENV APP_DIR /opt/company/product/component
 WORKDIR $APP_DIR
 
 COPY --from=build $APP_DIR/build/libs/component.jar $APP_DIR/build/libs/

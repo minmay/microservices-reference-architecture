@@ -1,4 +1,4 @@
-package suffix.company.product.component.api.entities;
+package suffix.company.product.component.api.repositories.entities;
 
 import lombok.Getter;
 import lombok.Setter;

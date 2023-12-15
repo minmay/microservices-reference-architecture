@@ -1,14 +1,21 @@
 plugins {
-	id 'org.springframework.boot' version '2.7.3'
-	id 'io.spring.dependency-management' version '1.0.13.RELEASE'
-	id 'java'
-	id 'com.gorylenko.gradle-git-properties' version '2.2.2'															// https://github.com/n0mer/gradle-git-properties
-	id 'org.unbroken-dome.test-sets' version '3.0.1'
+	id 'org.springframework.boot' version '2.7.5'																		// https://plugins.gradle.org/plugin/org.springframework.boot
+	id 'io.spring.dependency-management' version '1.0.13.RELEASE'														// https://plugins.gradle.org/plugin/io.spring.dependency-management
+	id 'java'																											// https://docs.gradle.org/current/userguide/java_plugin.html
+	id 'org.unbroken-dome.test-sets' version '4.0.0'																	// https://plugins.gradle.org/plugin/org.unbroken-dome.test-sets
+	id 'jacoco'																											// https://docs.gradle.org/current/userguide/jacoco_plugin.html
+	id 'idea'																											// https://docs.gradle.org/current/userguide/idea_plugin.html
 }
+
+apply plugin: 'checkstyle'
 
 group = 'suffix.company.product'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+sourceCompatibility = '17'
+
+checkstyle {
+	toolVersion = '8.25'
+}
 
 configurations {
 	compileOnly {
@@ -20,23 +27,25 @@ repositories {
 	mavenCentral()
 }
 
-ext {
-	javaFakerVersion = '1.0.2'
-	logbackEncoderVersion = '6.6'
-	testcontainersVersion = '1.17.3'
-	swaggerVersion = '3.0.0'
-	snippetsDir= 'build/generated-snippets'
-}
+ext['java-faker.version'] = '1.0.2'
+ext['logback-encoder.version'] = '6.6'
+ext['testcontainers.version'] = '1.17.3'
+ext['modelmapper.version'] = '3.1.1'
+ext['testcontainers.version'] = '1.17.3'
+ext['springdoc-openapi.version'] = '1.6.14'
 
 dependencyManagement {
+
 	imports {
 		mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
-		mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
+		mavenBom "org.testcontainers:testcontainers-bom:${ext['testcontainers.version']}"
 	}
 	dependencies {
-		dependency "com.github.javafaker:javafaker:${javaFakerVersion}"
-		dependency "net.logstash.logback:logstash-logback-encoder:${logbackEncoderVersion}"
-		dependency "io.springfox:springfox-boot-starter:${swaggerVersion}"
+		dependency "com.github.javafaker:javafaker:${ext['java-faker.version']}"
+		dependency "org.modelmapper:modelmapper:${ext['modelmapper.version']}"
+		dependency "net.logstash.logback:logstash-logback-encoder:${ext['logback-encoder.version']}"
+		dependency "org.springdoc:springdoc-openapi-ui:${ext['springdoc-openapi.version']}"
+		dependency "org.springdoc:springdoc-openapi-data-rest:${ext['springdoc-openapi.version']}"
 	}
 }
 
@@ -45,7 +54,9 @@ dependencies {
 		exclude group: 'org.yaml', module: 'snakeyaml'
 	}
 	implementation 'net.logstash.logback:logstash-logback-encoder'
-	implementation 'io.springfox:springfox-boot-starter'
+	implementation 'org.modelmapper:modelmapper'
+	implementation 'org.springdoc:springdoc-openapi-ui'
+	implementation 'org.springdoc:springdoc-openapi-data-rest'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -60,45 +71,83 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:postgresql'
+	checkstyle 'io.spring.javaformat:spring-javaformat-checkstyle:0.0.35'
 }
 
+/**
+ * Configure Checkstyle
+ */
+tasks.withType(Checkstyle) {
+	reports {
+		xml.enabled false
+		html.enabled true
+	}
+}
+
+/**
+ * Configure Tests
+ */
 test {
-	outputs.dir snippetsDir
-	filter{
+	outputs.dir 'build/generated-snippets'
+	filter {
 		excludeTestsMatching "*IT"
+	}
+	jacoco {
+		destinationFile = layout.buildDirectory.file('jacoco/jacocoTest.exec').get().asFile
+		classDumpDir = layout.buildDirectory.dir('jacoco/classpathdumps').get().asFile
+	}
+	testLogging {
+		// We want to know the status of all the tests.
+		events("passed", "skipped", "failed")
+
+		// Show stdout and stderr when running tests.
+		showStandardStreams = true
+
+		// When an exception is thrown, show the relevant part of the
+		// stacktrace.
+		showStackTraces = true
+		exceptionFormat = 'full'
 	}
 	useJUnitPlatform()
 }
 
+/**
+ * Configure Test Set
+ */
 testSets {
 	integrationTest { dirName = 'test' }
 }
 
+/**
+ * Task to run integration tests
+ */
 integrationTest {
-	outputs.dir snippetsDir
-	filter{
+	outputs.dir 'build/generated-snippets'
+	filter {
 		includeTestsMatching "*IT"
 	}
+	jacoco {
+		destinationFile = layout.buildDirectory.file('jacoco/jacocoTest.exec').get().asFile
+		classDumpDir = layout.buildDirectory.dir('jacoco/classpathdumps').get().asFile
+	}
 	useJUnitPlatform()
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+/**
+ * Configure Jacoco Reports
+ */
+jacocoTestReport {
+	reports {
+		xml.enabled true
+	}
+	dependsOn test
 }
 
-task copyDependencies(type: Copy) {
-	from configurations.runtimeClasspath
-	into 'build/libs'
-}
-
-task buildWithinDocker {
-	jar {
-		enabled = true
+jacocoIntegrationTestReport  {
+	reports {
+		xml.enabled true
 	}
-	gitProperties {
-		failOnNoGitDirectory false
-	}
-	dependsOn jar
+	dependsOn integrationTest
 }
 
 bootJar {
