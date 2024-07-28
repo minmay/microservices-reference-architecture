@@ -91,7 +91,7 @@ renamepackages() {
   sed -i '' "s/component\.product\.company\.suffix/$COMPONENT\.$PRODUCT\.$COMPANY\.$SUFFIX/" docker-compose.yaml
   echo "docker-compose.yaml: change component image name."
   sed -i '' "s/image\: company\.suffix\/product\/component\:latest/image\: $COMPANY\.$SUFFIX\/$PRODUCT\/$COMPONENT\:latest/" docker-compose.yaml
-  sed -i '' "s/db\.product\.company\.suffix\: \{\}/db\.$PRODUCT\.$COMPANY\.$SUFFIX\: \{\}/" docker-compose.yaml
+  sed -i '' "s/db\.product\.company\.suffix: {}/db\.$PRODUCT\.$COMPANY\.$SUFFIX\: {}/" docker-compose.yaml
 
   echo "fixing docker-compose.override.yaml"
   echo "docker-compose.override.yaml: change database name."
@@ -102,7 +102,6 @@ renamepackages() {
   sed -i '' "s/image\: company\.suffix\/product\/component\:latest/image\: $COMPANY\.$SUFFIX\/$PRODUCT\/$COMPONENT\:latest/" docker-compose.override.yaml
   sed -i '' "s/\- conf\/envs\/component\.env/\- conf\/envs\/$ARTIFACT_ID\.env/" docker-compose.override.yaml
   sed -i '' "s/\- \.\/conf\/liquibase\/component\-liquibase\.properties\:\/liquibase\/config\/liquibase\.properties/\- \.\/conf\/liquibase\/$COMPONENT\-liquibase\.properties\:\/liquibase\/config\/liquibase\.properties/" docker-compose.override.yaml
-  sed -i '' "s/db\.product\.company\.suffix\: \{\}/db\.$PRODUCT\.$COMPANY\.$SUFFIX: \{\}/" docker-compose.override.yaml
 
   # \- conf\/envs\/component\.env
   sed -i '' "s/conf\/envs\/component\.env/conf\/envs\/$COMPONENT\.env/" docker-compose.yaml
