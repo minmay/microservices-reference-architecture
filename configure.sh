@@ -75,23 +75,23 @@ renamepackages() {
   echo "fixing settings.gradle"
   sed -i '' "s/component/$ARTIFACT_ID/" settings.gradle
   echo "fixing src/main/resources/application.yaml"
-  sed -i '' "s/spring\.application\.name\: component/spring\.application\.name\: ${COMPONENT}/" src/main/resources/application.yaml
+  sed -i '' "s/spring\.application\.name: component/spring\.application\.name: ${COMPONENT}/" src/main/resources/application.yaml
   sed -i '' "s/spring\.datasource\.username: product/spring\.datasource\.username: ${PRODUCT}/" src/main/resources/application.yaml
-  sed -i '' "s/spring\.datasource\.password\: product/spring\.datasource\.password\: ${PRODUCT}/" src/main/resources/application.yaml
+  sed -i '' "s/spring\.datasource\.password: product/spring\.datasource\.password: ${PRODUCT}/" src/main/resources/application.yaml
   sed -i '' "s/logging\.level\.suffix\.company/logging\.level\.${SUFFIX}\.${COMPANY}/" src/main/resources/application.yaml
 
   echo "fixing docker-compose.yaml"
   echo "docker-compose.yaml: change database name."
   sed -i '' "s/postgresql\.db\.product\.company\.suffix/postgresql\.db\.$PRODUCT\.$COMPANY\.$SUFFIX/" docker-compose.yaml
   echo "docker-compose.yaml: changed schema spy output."
-  sed -i '' "s/command\: SCHEMASPY\_OUTPUT=\/schemaspy\/component \/usr\/local\/bin\/schemaspy \-schemas public\,audit/command\: SCHEMASPY\_OUTPUT=\/schemaspy\/$COMPONENT \/usr\/local\/bin\/schemaspy \-schemas public\,audit/" docker-compose.yaml
+  sed -i '' "s/command: SCHEMASPY\_OUTPUT=\/schemaspy\/component \/usr\/local\/bin\/schemaspy \-schemas public\,audit/command: SCHEMASPY\_OUTPUT=\/schemaspy\/$COMPONENT \/usr\/local\/bin\/schemaspy \-schemas public\,audit/" docker-compose.yaml
   echo "docker-compose.yaml: change ngnix volume"
-  sed -i '' "s/\- schemaspy\.component\.product\.company\.suffix\:\/usr\/share\/nginx\/html\/component\:ro/\- schemaspy\.$COMPONENT\.$PRODUCT\.$COMPANY\.$SUFFIX\:\/usr\/share\/nginx\/html\/$COMPONENT\:ro/" docker-compose.yaml
+  sed -i '' "s/\- schemaspy\.component\.product\.company\.suffix:\/usr\/share\/nginx\/html\/component:ro/\- schemaspy\.$COMPONENT\.$PRODUCT\.$COMPANY\.$SUFFIX:\/usr\/share\/nginx\/html\/$COMPONENT:ro/" docker-compose.yaml
   echo "docker-compose.yaml: change component name."
   sed -i '' "s/component\.product\.company\.suffix/$COMPONENT\.$PRODUCT\.$COMPANY\.$SUFFIX/" docker-compose.yaml
   echo "docker-compose.yaml: change component image name."
-  sed -i '' "s/image\: company\.suffix\/product\/component\:latest/image\: $COMPANY\.$SUFFIX\/$PRODUCT\/$COMPONENT\:latest/" docker-compose.yaml
-  sed -i '' "s/db\.product\.company\.suffix: {}/db\.$PRODUCT\.$COMPANY\.$SUFFIX\: {}/" docker-compose.yaml
+  sed -i '' "s/image: company\.suffix\/product\/component:latest/image: $COMPANY\.$SUFFIX\/$PRODUCT\/$COMPONENT:latest/" docker-compose.yaml
+  sed -i '' "s/db\.product\.company\.suffix: {}/db\.$PRODUCT\.$COMPANY\.$SUFFIX: {}/" docker-compose.yaml
 
   echo "fixing docker-compose.override.yaml"
   echo "docker-compose.override.yaml: change database name."
@@ -99,14 +99,14 @@ renamepackages() {
   echo "docker-compose.override.yaml: change component name."
   sed -i '' "s/component\.product\.company\.suffix/$COMPONENT\.$PRODUCT\.$COMPANY\.$SUFFIX/" docker-compose.override.yaml
   echo "docker-compose.override.yaml: change component image name."
-  sed -i '' "s/image\: company\.suffix\/product\/component\:latest/image\: $COMPANY\.$SUFFIX\/$PRODUCT\/$COMPONENT\:latest/" docker-compose.override.yaml
+  sed -i '' "s/image: company\.suffix\/product\/component:latest/image: $COMPANY\.$SUFFIX\/$PRODUCT\/$COMPONENT:latest/" docker-compose.override.yaml
   sed -i '' "s/\- conf\/envs\/component\.env/\- conf\/envs\/$ARTIFACT_ID\.env/" docker-compose.override.yaml
-  sed -i '' "s/\- \.\/conf\/liquibase\/component\-liquibase\.properties\:\/liquibase\/config\/liquibase\.properties/\- \.\/conf\/liquibase\/$COMPONENT\-liquibase\.properties\:\/liquibase\/config\/liquibase\.properties/" docker-compose.override.yaml
+  sed -i '' "s/\- \.\/conf\/liquibase\/component\-liquibase\.properties:\/liquibase\/config\/liquibase\.properties/\- \.\/conf\/liquibase\/$COMPONENT\-liquibase\.properties:\/liquibase\/config\/liquibase\.properties/" docker-compose.override.yaml
 
   # \- conf\/envs\/component\.env
   sed -i '' "s/conf\/envs\/component\.env/conf\/envs\/$COMPONENT\.env/" docker-compose.yaml
   echo "fixing conf/envs/${ARTIFACT_ID}.env"
-  sed -i '' "s/postgresql\.db\.product\.company\.suffix\:5432\/component/postgresql\.db\.$PRODUCT\.$COMPANY\.$SUFFIX\:5432\/$COMPONENT/" conf/envs/${ARTIFACT_ID}.env
+  sed -i '' "s/postgresql\.db\.product\.company\.suffix:5432\/component/postgresql\.db\.$PRODUCT\.$COMPANY\.$SUFFIX:5432\/$COMPONENT/" conf/envs/${ARTIFACT_ID}.env
   echo "fixing conf/envs/db.env"
   sed -i '' "s/product/$PRODUCT/" conf/envs/db.env
   sed -i '' "s/component/$COMPONENT/" conf/envs/db.env
@@ -115,7 +115,7 @@ renamepackages() {
   sed -i '' "s/product/$PRODUCT/" conf/schemaspy/schemaspy.properties
   sed -i '' "s/component/$COMPONENT/" conf/schemaspy/schemaspy.properties
   echo "fixing conf/liquibase/component-liquibase.properties"
-  sed -i '' "s/url\=jdbc\:postgresql\:\/\/postgresql\.db\.product\.company\.suffix\:5432\/component/url\=jdbc\:postgresql\:\/\/postgresql\.db\.$PRODUCT\.$COMPANY\.$SUFFIX\:5432\/$COMPONENT/" conf/liquibase/$COMPONENT-liquibase.properties
+  sed -i '' "s/url\=jdbc:postgresql:\/\/postgresql\.db\.product\.company\.suffix:5432\/component/url\=jdbc:postgresql:\/\/postgresql\.db\.$PRODUCT\.$COMPANY\.$SUFFIX:5432\/$COMPONENT/" conf/liquibase/$COMPONENT-liquibase.properties
   sed -i '' "s/product/$PRODUCT/" conf/liquibase/$COMPONENT-liquibase.properties
   echo "fixing run.sh"
   sed -i '' "s/component/$ARTIFACT_ID/" run.sh
