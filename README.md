@@ -160,7 +160,7 @@ are hidden from other services.
 * Supports polyglot programming. For example, services don't need to share the same technology stack, libraries, 
 or frameworks.
 
-![Microservices Architecture](src/main/docs/images/micro.png)
+![Microservices Architecture](src/main/docs/images/microservices.svg)
 
 ### Layered Architecture Pattern
 
@@ -176,7 +176,7 @@ labor, and it is typically easy to refactor a top layer.
 
 Its drawback is that there is a performance cost for each layer, and it can be very expensive to refactor lower layers.
 
-![Layered Architecture Pattern](src/main/docs/images/layers.png)
+![Layered Architecture Pattern](src/main/docs/images/layers.svg)
 
 ## Design Decisions
 | Id      | Design Decisions and Location                                                                                                                                                    | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -215,7 +215,7 @@ Layering within a Spring Boot Micro-Services application.
 | Client Interface Layer or Persistence Layer | The Client Interface Layer is responsible for sending or receiving data from other systems.  This might also be a Persistence Layer that merely persist data into a data-store. For example, this could be a set of Data-access Objects that use JPA. |
 | Domain / Model Layer | The Domain / Model layer should attempt to provide an object-oriented model of your business. It is good to implement business logic here, but keep in mind that business logic computations often require external persistence, and it is anti-pattern to couple persistence technologies with a domain object. These absolutely should be Plain Ordinary Java objects, and depending on your threading model, perhaps immutable as well. | 
  
-![Spring Boot Layers](src/main/docs/images/sb-layers.png)
+![Spring Boot Layers](src/main/docs/images/sb-layers.svg)
 
 ## Package Structure
 
@@ -369,7 +369,7 @@ public class AcmeConfiguration {
    }
 }
 ```
-![Package Structures](src/main/docs/images/packages.png)
+![Package Structures](src/main/docs/images/packages.svg)
 
 ## Database Conventions
 
