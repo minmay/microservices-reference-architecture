@@ -82,7 +82,9 @@ renamepackages() {
 
   echo "fixing docker-compose.yaml"
   echo "docker-compose.yaml: change database name."
-  sed -i '' "s/postgresql\.db\.product\.company\.suffix/postgresql\.db\.$PRODUCT\.$COMPANY\.$SUFFIX/" docker-compose.yaml
+  sed -i '' "s/postgresql\.db\.product\.company\.suffix/postgresql\.db\.$PRODUCT\.$PRODUCT\.$SUFFIX/" docker-compose.yaml
+  echo "docker-compose.yaml: change database volume."
+  sed -i '' "s/\- db\.product\.company\.suffix:\/var\/lib\/postgresql\/data/\- db\.$PRODUCT\.$PRODUCT\.$SUFFIX:\/var\/lib\/postgresql\/data" docker-compose.yaml
   echo "docker-compose.yaml: changed schema spy output."
   sed -i '' "s/command: SCHEMASPY\_OUTPUT=\/schemaspy\/component \/usr\/local\/bin\/schemaspy \-schemas public\,audit/command: SCHEMASPY\_OUTPUT=\/schemaspy\/$COMPONENT \/usr\/local\/bin\/schemaspy \-schemas public\,audit/" docker-compose.yaml
   echo "docker-compose.yaml: change ngnix volume"
