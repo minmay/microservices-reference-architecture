@@ -32,20 +32,20 @@ public abstract class AbstractEntity implements Persistable<Long> {
 	 * with minor changes.
 	 */
 	@Override
-	public boolean equals(Object o) {
-		if (this == o) {
+	public boolean equals(Object obj) {
+		if (this == obj) {
 			return true;
 		}
 
-		if (o == null) {
+		if (obj == null) {
 			return false;
 		}
 
-		if (!getClass().getCanonicalName().equals(o.getClass().getCanonicalName())) {
+		if (!getClass().getCanonicalName().equals(obj.getClass().getCanonicalName())) {
 			return false;
 		}
 
-		AbstractEntity other = (AbstractEntity) o;
+		AbstractEntity other = (AbstractEntity) obj;
 
 		return getId() != null && getId().equals(other.getId());
 	}

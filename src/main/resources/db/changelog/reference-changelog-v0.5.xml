@@ -32,7 +32,7 @@
                 IF (TG_OP = ''UPDATE'') AND (NEW.last_updated_by > 0) THEN
                     NEW.version := OLD.version + 1;
                     NEW.updated_at := CURRENT_TIMESTAMP;
-                    EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING NEW;
+                    EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING OLD;
                     RETURN NEW;
                 ELSEIF (TG_OP = ''DELETE'') THEN
                     EXECUTE format(''INSERT INTO audit.%I_h SELECT nextval(''''audit.%I_h_id_seq''''), %L, now(), ($1).*'', TG_TABLE_NAME, TG_TABLE_NAME, TG_OP) USING OLD;
@@ -158,7 +158,6 @@
             <column name="organization_id" type="bigint" remarks="The organization that an organizational unit belongs to">
                 <constraints nullable="false" references="organizations(id)" foreignKeyName="ou_o_fk"/>
             </column>
-            <column name="external_id" type="varchar(50)" remarks="Customer-provided ID for the refinery"/>
             <column name="name" type="varchar(50)" remarks="Refinery name">
                 <constraints nullable="false"/>
             </column>
@@ -218,7 +217,6 @@
             <column name="organization_id" type="bigint" remarks="The organization that an organizational unit belongs to">
                 <constraints nullable="false"/>
             </column>
-            <column name="external_id" type="varchar(50)" remarks="Customer-provided ID for the refinery"/>
             <column name="name" type="varchar(50)" remarks="Refinery name">
                 <constraints nullable="false"/>
             </column>
@@ -549,16 +547,6 @@
                 <constraints nullable="false" unique="true"/>
             </column>
             <column name="description" type="varchar(1000)" remarks="Additional description about the permission"/>
-            <column name="is_generic" type="boolean" remarks="Is this a permission all users have access to?">
-                <constraints nullable="false"/>
-            </column>
-            <column name="is_internal" type="boolean" remarks="Is this a permission only for use by Beyond Limits employees?">
-                <constraints nullable="false"/>
-            </column>
-            <column name="is_dark" type="boolean" remarks="Is this a dark permission and not yet available in production environments?">
-                <constraints nullable="false"/>
-            </column>
-
             <!--Below fields added to every table-->
             <column name="last_updated_by" type="bigint" defaultValueNumeric="1" remarks="The last user to update this record">
                 <constraints nullable="false"/>
@@ -595,15 +583,6 @@
                 <constraints nullable="false"/>
             </column>
             <column name="description" type="varchar(1000)" remarks="Additional description about the permission"/>
-            <column name="is_generic" type="boolean" remarks="Is this a permission all users have?">
-                <constraints nullable="false"/>
-            </column>
-            <column name="is_internal" type="boolean" remarks="Is this a permission only for use by Beyond Limits employees?">
-                <constraints nullable="false"/>
-            </column>
-            <column name="is_dark" type="boolean" remarks="Does this provide permission for a dark feature (not yet available to customers in the production environment)?">
-                <constraints nullable="false"/>
-            </column>
             <column name="last_updated_by" type="bigint" remarks="The last user to update this record">
                 <constraints nullable="false"/>
             </column>
