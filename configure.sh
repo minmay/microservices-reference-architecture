@@ -130,6 +130,8 @@ renamepackages() {
   echo "fixing conf/nginx/nginx.conf"
   sed -i '' "s/component/$COMPONENT/" conf/nginx/nginx.conf
   # sed -i '' "s/pattern/substitution/" file
+  echo "fixing README.md"
+  sed -i '' "s/\[View Schema\]\(http:\/\/localhost:8090\/component\)/\[View Schema\]\(http:\/\/localhost:8090\/$COMPONENT\)/" README.md
 }
 
 until buildpackages; do : ; done

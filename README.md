@@ -101,9 +101,8 @@ Just type `docker-compose up`
 
 ## URLs
 
-[View Schema](http://localhost:8090)
-
-[View Actuator](http://localhost:8080)
+[View Schema](http://localhost:8090/component)
+[View Actuator](http://localhost:8080/actuator)
 [Swagger UI](http://localhost:8080/swagger-ui/index.html)
 
 ## Database Conventions Bootstrap
@@ -529,6 +528,27 @@ Additionally, each table has a table in the in the audit schema.
 | role_components | For roles with components, this table defines what the component roles make up the composite role.                                                                               |
 
 ![Reference Schema](src/main/docs/images/relationships.real.large.png)
+
+## Playbook
+
+### Local Stack Commands
+
+#### list buckets
+```
+aws --endpoint-url=http://localhost:4566 s3api list-buckets
+```
+
+### How to test a rollback
+Once you have the database running within docker-compose, you occassionally want to test a rollback.
+
+1. ```docker-compose -f db-only-docker-compose.yml run --entrypoint /bin/bash schema.db```
+2. Explore liquibase, with this command: ```./scripts/liquibase/liquibase --help```
+3. Confirm applied migrations: ```./scripts/liquibase/liquibase --username=${USERNAME} --password=${PASSWORD} --changeLogFile=${CHANGE_LOG_FILE} --url=jdbc:postgresql://${DATABASE_HOSTNAME}:5432/${DATABASE_NAME} history```
+4. Rollback the last migration: ```./scripts/liquibase/liquibase --username=${USERNAME} --password=${PASSWORD} --changeLogFile=${CHANGE_LOG_FILE} --url=jdbc:postgresql://${DATABASE_HOSTNAME}:5432/${DATABASE_NAME} rollbackCount 1```
+5. Populate the database (sometimes you have test if a migration works with data already in the database).
+6. Apply the last migration: ```./scripts/liquibase/liquibase --username=${USERNAME} --password=${PASSWORD} --changeLogFile=${CHANGE_LOG_FILE} --url=jdbc:postgresql://${DATABASE_HOSTNAME}:5432/${DATABASE_NAME} update```
+
+
 
 ## References
 1. Bass L, Clements P, Kazman R. Software Architecture in Practice. Addison-Wesley Professional; 2012.

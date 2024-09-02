@@ -21,9 +21,6 @@ import javax.persistence.Table;
 public class OrganizationalUnit extends AuditableEntity {
 
 	@Length(max = 50)
-	private String externalId;
-
-	@Length(max = 50)
 	private String name;
 
 	@Length(max = 10)
