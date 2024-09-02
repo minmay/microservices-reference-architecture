@@ -12,9 +12,9 @@ INSERT INTO
 
 INSERT INTO
     organizational_units (
-        id, organization_id, external_id, name, code, description
+        id, organization_id, name, code, description
     ) VALUES (
-        DEFAULT, 1, '1', 'Death Star One Orbital Battle Station', 'ds1', 'First Death Star implementation.'
+        DEFAULT, 1, Death Star One Orbital Battle Station', 'ds1', 'First Death Star implementation.'
 );
 
 INSERT INTO
@@ -29,8 +29,7 @@ INSERT INTO
 INSERT INTO
     users (
         id, organizational_unit_id, email_address, first_name,
-        last_name, idp_id, phone_number, photo_link,
-        job_title, notify_by_email, notify_by_phone
+        last_name, idp_id
 ) VALUES (
          DEFAULT, 1, 'dmaul@empire.org', 'Darth',
         'Maul', 'http://'
@@ -39,22 +38,20 @@ INSERT INTO
 INSERT INTO
     users (
     id, organizational_unit_id, email_address, first_name,
-    last_name, idp_id, phone_number, photo_link,
-    job_title, notify_by_email, notify_by_phone
+    last_name, idp_id
 ) VALUES (
-             DEFAULT, 1, 'minmay@sdf1.org', 'Lynn',
-             'Minmay', 'http://'
-         );
+     DEFAULT, 1, 'minmay@sdf1.org', 'Lynn',
+     'Minmay', 'http://'
+ );
 
 INSERT INTO
     users (
     id, organizational_unit_id, email_address, first_name,
-    last_name, idp_id, phone_number, photo_link,
-    job_title, notify_by_email, notify_by_phone
+    last_name, idp_id
 ) VALUES (
-             DEFAULT, 1, 'hichijo@mail.org', 'Hikaru',
-             'Ichijo', 'http://'
-         );
+     DEFAULT, 1, 'hichijo@mail.org', 'Hikaru',
+     'Ichijo', 'http://'
+ );
 
 
 
