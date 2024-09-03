@@ -303,13 +303,13 @@ This will contain any POJOs that are used in the HTTP Request / Response.  We us
 
 ##### Controller IO Naming Convention Examples
 
-| Method | Resource            | Request Object               | Response Object                                                                   |
-|--------|---------------------|------------------------------|-----------------------------------------------------------------------------------|
-| GET    | /pluralNouns        | N/A                          | FindManyPluralNounsResponseTO                                                     |
-| GET    | /pluralNouns/\{id\} | N/A                          | FindOneSingularNounResponseTO                                                     |
-| PUT    | /pluralNouns/\{id\} | PutOneSingularNounRequestTO  | PutOneSingularNounResponseTO. This just return 200 and require a response object. |
-| POST   | /pluralNouns        | PostOneSingularNounRequestTO | PostOneSingularNounResponseTO                                                     |
-| DELETE | /pluralNouns/\{id\} | N/A                          | RemoveOneSingularNounResponseTO (realistically, this will have no response)       |
+| Method | Resource            | Request Object                | Response Object                                                                    |
+|--------|---------------------|-------------------------------|------------------------------------------------------------------------------------|
+| GET    | /pluralNouns        | N/A                           | FindManyPluralNounsResponseDto                                                     |
+| GET    | /pluralNouns/\{id\} | N/A                           | FindOneSingularNounResponseDto                                                     |
+| PUT    | /pluralNouns/\{id\} | PutOneSingularNounRequestDto  | PutOneSingularNounResponseDto. This just return 200 and require a response object. |
+| POST   | /pluralNouns        | PostOneSingularNounRequestDto | PostOneSingularNounResponseDto                                                     |
+| DELETE | /pluralNouns/\{id\} | N/A                           | RemoveOneSingularNounResponseDto (realistically, this will have no response)       |
 
 ### suffix.company.product.component.implementation.repositories
 This will contain concrete Data-Access objects used by the Services.

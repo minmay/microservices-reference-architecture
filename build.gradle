@@ -1,20 +1,24 @@
 plugins {
-	id 'org.springframework.boot' version '2.7.5'																		// https://plugins.gradle.org/plugin/org.springframework.boot
-	id 'io.spring.dependency-management' version '1.0.13.RELEASE'														// https://plugins.gradle.org/plugin/io.spring.dependency-management
+	id 'org.springframework.boot' version '3.3.3'																		// https://plugins.gradle.org/plugin/org.springframework.boot
+	id 'io.spring.dependency-management' version '1.1.6'																// https://plugins.gradle.org/plugin/io.spring.dependency-management
 	id 'java'																											// https://docs.gradle.org/current/userguide/java_plugin.html
-	id 'org.unbroken-dome.test-sets' version '4.0.0'																	// https://plugins.gradle.org/plugin/org.unbroken-dome.test-sets
+	id 'org.unbroken-dome.test-sets' version '4.1.0'																	// https://plugins.gradle.org/plugin/org.unbroken-dome.test-sets
 	id 'jacoco'																											// https://docs.gradle.org/current/userguide/jacoco_plugin.html
 	id 'idea'																											// https://docs.gradle.org/current/userguide/idea_plugin.html
+	id 'checkstyle'																										// https://docs.gradle.org/current/userguide/checkstyle_plugin.html
 }
-
-apply plugin: 'checkstyle'
 
 group = 'suffix.company.product'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '17'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
 
 checkstyle {
-	toolVersion = '8.25'
+	toolVersion = '10.12.4'
 }
 
 configurations {
@@ -28,11 +32,14 @@ repositories {
 }
 
 ext['java-faker.version'] = '1.0.2'
-ext['logback-encoder.version'] = '6.6'
-ext['testcontainers.version'] = '1.17.3'
-ext['modelmapper.version'] = '3.1.1'
-ext['testcontainers.version'] = '1.17.3'
-ext['springdoc-openapi.version'] = '1.6.14'
+ext['logback-encoder.version'] = '8.0'
+ext['testcontainers.version'] = '1.20.1'
+ext['modelmapper.version'] = '3.2.1'
+ext['springdoc-openapi.version'] = '1.8.0'
+
+ext {
+	set('snippetsDir', file("build/generated-snippets"))
+}
 
 dependencyManagement {
 
@@ -71,7 +78,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:postgresql'
-	checkstyle 'io.spring.javaformat:spring-javaformat-checkstyle:0.0.35'
+	checkstyle 'io.spring.javaformat:spring-javaformat-checkstyle:0.0.43'
 }
 
 /**
@@ -79,15 +86,15 @@ dependencies {
  */
 tasks.withType(Checkstyle) {
 	reports {
-		xml.enabled false
-		html.enabled true
+		xml.required = false
+		html.required = true
 	}
 }
 
 /**
  * Configure Tests
  */
-test {
+tasks.named("test") {
 	outputs.dir 'build/generated-snippets'
 	filter {
 		excludeTestsMatching "*IT"
@@ -138,18 +145,22 @@ integrationTest {
  */
 jacocoTestReport {
 	reports {
-		xml.enabled true
+		xml.required = true
 	}
 	dependsOn test
 }
 
 jacocoIntegrationTestReport  {
 	reports {
-		xml.enabled true
+		xml.required = true
 	}
 	dependsOn integrationTest
 }
 
-bootJar {
+tasks.named("bootJar") {
 	archiveFileName = 'component.jar'
+}
+
+tasks.named("jar") {
+	enabled = false
 }
