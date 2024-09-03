@@ -1,5 +1,6 @@
 package suffix.company.product.component.implementation.repositories;
 
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -7,8 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import suffix.company.product.component.api.repositories.OrganizationRepository;
 import suffix.company.product.component.api.repositories.OrganizationalUnitRepository;
-
-import javax.persistence.EntityManager;
 
 /**
  * Base class for all integration tests that require embedded database. By extending from this class tests can make sure

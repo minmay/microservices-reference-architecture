@@ -1,7 +1,7 @@
 # docker build -t company.suffix/product/component:latest -t company.suffix/product/component:0.0.1-SNAPSHOT .
 # docker run -p 8080:8080 company.suffix/product/component:latest
 
-FROM gradle:7.5.1-jdk17 as build
+FROM gradle:8.10-jdk21-alpine as build
 LABEL vendor="Company"
 LABEL app="component"
 
@@ -16,7 +16,7 @@ RUN mkdir -p $APP_DIR/src/main
 ADD src/main $APP_DIR/src/main
 RUN gradle build
 
-FROM azul/zulu-openjdk:17 AS deployment
+FROM azul/zulu-openjdk:21 AS deployment
 
 EXPOSE 8080
 EXPOSE 5005

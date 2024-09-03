@@ -25,31 +25,31 @@
  *         <td>GET</td>
  *         <td>/pluralNouns</td>
  *         <td>N/A -uses path and query parameters.</td>
- *         <td>FindManyPluralNounsResponse</td>
+ *         <td>FindManyPluralNounsResponseDto</td>
  *     </tr>
  *     <tr>
  *         <td>GET</td>
  *         <td>/pluralNouns/{id}</td>
  *         <td>N/A -uses path and query parameters.</td>
- *         <td>FindOnePluralNoun</td>
+ *         <td>FindOnePluralNounDto</td>
  *     </tr>
  *     <tr>
  *         <td>PUT</td>
  *         <td>/pluralNouns</td>
- *         <td>PutOnePluralNounRequest</td>
- *         <td>PutOnePluralNounResponse</td>
+ *         <td>PutOnePluralNounRequestDto</td>
+ *         <td>PutOnePluralNounResponseDto</td>
  *     </tr>
  *     <tr>
  *         <td><POST/td>
  *         <td>/pluralNouns</td>
- *         <td>PostOnePluralNounRequest</td>
- *         <td>PostOnePluralNounResponse</td>
+ *         <td>PostOnePluralNounRequestDto</td>
+ *         <td>PostOnePluralNounResponseDto</td>
  *     </tr>
  *     <tr>
  *         <td>DELETE</td>
  *         <td>/pluralNouns/{id}</td>
  *         <td>N/A</td>
- *         <td>RemoveOnePluralNounResponse (realistically, this will have no response).</td>
+ *         <td>RemoveOnePluralNounResponseDto (realistically, this will have no response).</td>
  *     </tr>
  * </table>
  * </p>
