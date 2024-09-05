@@ -1,6 +1,7 @@
 package suffix.company.product.component.implementation.controllers.v1;
 
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,6 @@ import suffix.company.product.component.api.services.domain.exception.NotFoundEx
 import suffix.company.product.component.api.services.domain.exception.RemoteErrorException;
 import suffix.company.product.component.implementation.controllers.v1.io.ErrorResponseDto;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 
 /**
