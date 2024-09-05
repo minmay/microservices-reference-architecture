@@ -54,4 +54,4 @@
  * </table>
  * </p>
  */
-package suffix.company.product.component.implementation.controllers.io;
+package suffix.company.product.component.implementation.controllers.v1.io;
